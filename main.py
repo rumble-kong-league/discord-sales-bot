@@ -1,11 +1,12 @@
 import os
 from datetime import datetime, timedelta
 from discord import Webhook, RequestsWebhookAdapter
+from dotenv import load_dotenv
 import requests
 import discord
 import tweepy
 
-# todo: dotenv
+load_dotenv()
 
 headers = {
     "X-API-KEY": os.getenv("OPENSEA_API_KEY"),
@@ -67,12 +68,7 @@ def cronjob():
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     api = tweepy.API(auth, wait_on_rate_limit=True)
-    try:
-        api.verify_credentials()
-    except Exception as e:
-        print("Error creating API", exc_info=True)
-        raise e
-    print("API created")
+    api.verify_credentials()
 
     # the first mint
     contract = "0xef0182dc0574cd5874494a120750fd222fdb909a"
@@ -98,16 +94,10 @@ def cronjob():
     }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
-    # print(response.text)
-    # if response.status_code != 200:
-    #     print('error')
-    #     break
 
     # getting sales data
     sales_data = response.json()["asset_events"]
     print(sales_data)
-    # if sales_data == []:
-    #     break
 
     for sales_datum in sales_data:
 
@@ -121,12 +111,15 @@ def cronjob():
             buyer = sales_datum["winner_account"]["user"]["username"]
         except:
             buyer = "Anon"
+
         buyer_address = sales_datum["winner_account"]["address"]
         total_price = sales_datum["total_price"]
+
         try:
             seller = sales_datum["seller"]["user"]["username"]
         except:
             seller = "Anon"
+
         seller_address = sales_datum["seller"]["address"]
         payment_symbol = sales_datum["payment_token"]["symbol"]
         payment_decimals = sales_datum["payment_token"]["decimals"]
