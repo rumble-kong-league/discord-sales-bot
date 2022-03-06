@@ -93,12 +93,12 @@ def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
         try:
             trade_counter_party = sales_datum["winner_account"]["user"]["username"]
         except:
-            trade_counter_party = "Anon"
+            trade_counter_party = sales_datum["winner_account"]["address"]
     elif side == TradeSide.Seller:
         try:
             trade_counter_party = sales_datum["seller"]["user"]["username"]
         except:
-            trade_counter_party = "Anon"
+            trade_counter_party = sales_datum["seller"]["address"]
     else:
         raise ValueError("Invalid trade side")
 
@@ -147,47 +147,44 @@ def cronjob():
         name = sales_datum["asset"]["name"]
         image_url = sales_datum["asset"]["image_url"]
         token_id = sales_datum["asset"]["token_id"]
+        total_price = sales_datum["total_price"]
 
         boosts = get_kong_boosts(token_id)
 
         buyer = get_trade_counter_party(TradeSide.Buyer, sales_datum)
-        buyer_address = sales_datum["winner_account"]["address"]
-        total_price = sales_datum["total_price"]
         seller = get_trade_counter_party(TradeSide.Seller, sales_datum)
+        buyer_address = sales_datum["winner_account"]["address"]
         seller_address = sales_datum["seller"]["address"]
 
         payment_symbol = sales_datum["payment_token"]["symbol"]
         payment_decimals = sales_datum["payment_token"]["decimals"]
-        payment_USD = sales_datum["payment_token"]["usd_price"]
+        payment_usd = sales_datum["payment_token"]["usd_price"]
 
         price_eth = float(total_price) / 10 ** (payment_decimals)
-        price_usd = price_eth * float(payment_USD)
+        price_usd = price_eth * float(payment_usd)
 
-        if buyer is None:
-            buyer = buyer_address[0:6]
-        if seller is None:
-            seller = seller_address[0:6]
-
-        desc = f"Price: {price_eth} {payment_symbol}, (${price_usd:.2f})"
-        embed_var = discord.Embed(
-            title=name + " Sold",
-            description=desc,
+        description = f"Price: {price_eth} {payment_symbol}, (${price_usd:.2f})"
+        discord_message = discord.Embed(
+            title=f"{name} Sold",
+            description=description,
             url=f"{RKL_ASSET_OPENSEA_URL}{token_id}",
         )
-        embed_var.set_thumbnail(url=image_url)
-        embed_var.add_field(
+        discord_message.set_thumbnail(url=image_url)
+        discord_message.add_field(
             name="Boost Total", value=boosts["cumulative"], inline=False
         )
-        embed_var.add_field(name="Defense", value=boosts["defense"], inline=True)
-        embed_var.add_field(name="Finish", value=boosts["finish"], inline=True)
-        embed_var.add_field(name="Shooting", value=boosts["shooting"], inline=True)
-        embed_var.add_field(name="Vision", value=boosts["vision"], inline=True)
-        embed_var.add_field(
+        discord_message.add_field(name="Defense", value=boosts["defense"], inline=True)
+        discord_message.add_field(name="Finish", value=boosts["finish"], inline=True)
+        discord_message.add_field(
+            name="Shooting", value=boosts["shooting"], inline=True
+        )
+        discord_message.add_field(name="Vision", value=boosts["vision"], inline=True)
+        discord_message.add_field(
             name="Seller",
             value=f"[{seller}](https://opensea.io/{seller_address})",
             inline=False,
         )
-        embed_var.add_field(
+        discord_message.add_field(
             name="Buyer",
             value=f"[{buyer}](https://opensea.io/{buyer_address})",
             inline=True,
@@ -200,5 +197,5 @@ def cronjob():
             + f" {RKL_ASSET_OPENSEA_URL}{token_id}"
         )
 
-        webhook.send(embed=embed_var)
+        webhook.send(embed=discord_message)
         api.update_status(status_text)  # Kong #3044 bought for 1.18Ξ ($5082.21)
