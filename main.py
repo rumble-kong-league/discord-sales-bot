@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from typing import Dict
 from discord import Webhook, RequestsWebhookAdapter
 from dotenv import load_dotenv
 import requests
@@ -8,22 +9,35 @@ import tweepy
 
 load_dotenv()
 
+# todo: better names to understand what these keys are for
+
+RKL_CONTRACT = "0xef0182dc0574cd5874494a120750fd222fdb909a"
+
+CHANNEL_URL = os.getenv("CHANNEL_URL")
+API_KEY = os.getenv("API_KEY")
+API_SECRET = os.getenv("API_SECRET")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
+ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET")
+OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
+
 headers = {
-    "X-API-KEY": os.getenv("OPENSEA_API_KEY"),
+    "X-API-KEY": OPENSEA_API_KEY,
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     + " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
 }
 
 
-def get_kong_boosts(kong_id):
-    """_summary_
+def get_kong_boosts(kong_id: int) -> Dict[str, int]:
+    """For a given kong id, returns its boosts.
 
     Args:
-        kong_id (_type_): _description_
+        kong_id (int): Kong's id
 
     Returns:
-        _type_: _description_
+        Dict[str, int]: Kong's boosts
     """
+
+    # todo: change to read this from file
     url = (
         "https://api.opensea.io/api/v1/asset/0xef0182dc0574cd5874494a120750fd222fdb909a/"
         + str(kong_id)
@@ -33,16 +47,23 @@ def get_kong_boosts(kong_id):
     boosts = {}
 
     for item in traits:
-        if item["trait_type"] == "Vision":
-            boosts["vision"] = int(item["value"])
-        elif item["trait_type"] == "Defense":
-            boosts["defense"] = int(item["value"])
-        elif item["trait_type"] == "Shooting":
-            boosts["shooting"] = int(item["value"])
-        elif item["trait_type"] == "Finish":
-            boosts["finish"] = int(item["value"])
+        item_trait_type = item["trait_type"]
+        value = int(item["value"])
+
+        if item_trait_type == "Vision":
+            boosts["vision"] = value
+
+        elif item_trait_type == "Defense":
+            boosts["defense"] = value
+
+        elif item_trait_type == "Shooting":
+            boosts["shooting"] = value
+
+        elif item_trait_type == "Finish":
+            boosts["finish"] = value
 
     boosts["cumulative"] = sum(boosts.values())
+
     return boosts
 
 
@@ -56,24 +77,14 @@ def cronjob():
     """
     url = "https://api.opensea.io/api/v1/events"
 
-    wh_url = os.getenv("CHANNEL_URL")
-    consumer_key = os.getenv("API_KEY")
-    consumer_secret = os.getenv("API_SECRET")
-    access_token = os.getenv("ACCESS_TOKEN")
-    access_token_secret = os.getenv("ACCESS_TOKEN_SECRET")
+    webhook = Webhook.from_url(CHANNEL_URL, adapter=RequestsWebhookAdapter())
 
-    webhook = Webhook.from_url(wh_url, adapter=RequestsWebhookAdapter())
-
-    # Set up Tweepy
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
+    auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True)
     api.verify_credentials()
 
-    # the first mint
-    contract = "0xef0182dc0574cd5874494a120750fd222fdb909a"
-
-    print(f"Checking contract {contract} for new sales")
+    print(f"Checking contract {RKL_CONTRACT} for new sales")
 
     # get current time in utc time zone
     ct = datetime.utcnow()
@@ -85,7 +96,7 @@ def cronjob():
     ostime = pts.split(" ", maxsplit=1)[0] + "T" + pts.split(" ")[1]
 
     querystring = {
-        "asset_contract_address": contract,
+        "asset_contract_address": RKL_CONTRACT,
         "event_type": "successful",
         "only_opensea": "false",
         "occurred_after": ostime,
