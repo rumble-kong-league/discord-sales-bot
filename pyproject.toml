@@ -6,7 +6,7 @@ authors = ["RKL <hello@rl.games>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "3.9.6"
+python = ">=3.9,<4"
 "discord.py" = "1.7.3"
 requests = "^2.27.1"
 DateTime = "^4.4"
