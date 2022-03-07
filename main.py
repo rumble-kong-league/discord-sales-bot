@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict
 from enum import Enum
+import time
 from discord import Webhook, RequestsWebhookAdapter
 from dotenv import load_dotenv
 import requests
@@ -11,21 +12,23 @@ import tweepy
 load_dotenv()
 
 
+SLEEP_TIME = 15  # in seconds
+
+
 class TradeSide(Enum):
     Buyer = 0
     Seller = 1
 
 
-# todo: better names to understand what these keys are for
-
+# todo: should also support sneakers and any other RKL collections
 RKL_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"
 RKL_ASSET_OPENSEA_URL = f"https://opensea.io/assets/{RKL_CONTRACT_ADDRESS}/"
 
-CHANNEL_URL = os.getenv("CHANNEL_URL")
-API_KEY = os.getenv("API_KEY")
-API_SECRET = os.getenv("API_SECRET")
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET")
+DISCORD_KONG_WEBHOOK = os.getenv("DISCORD_KONG_WEBHOOK")
+TWEEPY_API_KEY = os.getenv("TWEEPY_API_KEY")
+TWEEPY_API_SECRET = os.getenv("TWEEPY_API_SECRET")
+TWEEPY_ACCESS_TOKEN = os.getenv("TWEEPY_ACCESS_TOKEN")
+TWEEPY_ACCESS_TOKEN_SECRET = os.getenv("TWEEPY_ACCESS_TOKEN_SECRET")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 
 headers = {
@@ -53,19 +56,18 @@ def get_kong_boosts(kong_id: int) -> Dict[str, int]:
 
     for item in traits:
         item_trait_type = item["trait_type"]
-        value = int(item["value"])
 
         if item_trait_type == "Vision":
-            boosts["vision"] = value
+            boosts["vision"] = int(item["value"])
 
         elif item_trait_type == "Defense":
-            boosts["defense"] = value
+            boosts["defense"] = int(item["value"])
 
         elif item_trait_type == "Shooting":
-            boosts["shooting"] = value
+            boosts["shooting"] = int(item["value"])
 
         elif item_trait_type == "Finish":
-            boosts["finish"] = value
+            boosts["finish"] = int(item["value"])
 
     boosts["cumulative"] = sum(boosts.values())
 
@@ -107,7 +109,7 @@ def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
 
 # todo: too-many-locals
 # todo: too-many-statements
-def cronjob():
+def main():
     """_summary_
 
     Raises:
@@ -115,10 +117,10 @@ def cronjob():
     """
     url = "https://api.opensea.io/api/v1/events"
 
-    webhook = Webhook.from_url(CHANNEL_URL, adapter=RequestsWebhookAdapter())
+    webhook = Webhook.from_url(DISCORD_KONG_WEBHOOK, adapter=RequestsWebhookAdapter())
 
-    auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
-    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    auth = tweepy.OAuthHandler(TWEEPY_API_KEY, TWEEPY_API_SECRET)
+    auth.set_access_token(TWEEPY_ACCESS_TOKEN, TWEEPY_ACCESS_TOKEN_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True)
     api.verify_credentials()
 
@@ -199,3 +201,9 @@ def cronjob():
 
         webhook.send(embed=discord_message)
         api.update_status(status_text)  # Kong #3044 bought for 1.18Ξ ($5082.21)
+
+
+if __name__ == "__main__":
+    while True:
+        main()
+        time.sleep(SLEEP_TIME)
