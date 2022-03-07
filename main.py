@@ -22,7 +22,7 @@ TWEEPY_ACCESS_TOKEN = os.getenv("TWEEPY_ACCESS_TOKEN")
 TWEEPY_ACCESS_TOKEN_SECRET = os.getenv("TWEEPY_ACCESS_TOKEN_SECRET")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 
-SLEEP_TIME = 18000  # in seconds
+SLEEP_TIME = 180  # in seconds
 # todo: should also support sneakers and any other RKL collections
 OPENSEA_EVENTS_URL = "https://api.opensea.io/api/v1/events"
 RKL_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"
