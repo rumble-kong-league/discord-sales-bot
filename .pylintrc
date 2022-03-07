@@ -94,8 +94,7 @@ disable=invalid-name,
         import-error,
         too-few-public-methods,
         duplicate-code,
-        too-many-locals,
-        too-many-statements,
+        too-many-instance-attributes,
         fixme
 
 # Enable the message, report, category or checker with the given id(s). You can

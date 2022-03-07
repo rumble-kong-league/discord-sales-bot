@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 from typing import Dict
 from enum import Enum
 import time
@@ -9,20 +10,9 @@ import requests
 import discord
 import tweepy
 
+# todo: docs
+
 load_dotenv()
-
-
-SLEEP_TIME = 15  # in seconds
-
-
-class TradeSide(Enum):
-    Buyer = 0
-    Seller = 1
-
-
-# todo: should also support sneakers and any other RKL collections
-RKL_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"
-RKL_ASSET_OPENSEA_URL = f"https://opensea.io/assets/{RKL_CONTRACT_ADDRESS}/"
 
 DISCORD_KONG_WEBHOOK = os.getenv("DISCORD_KONG_WEBHOOK")
 TWEEPY_API_KEY = os.getenv("TWEEPY_API_KEY")
@@ -31,11 +21,104 @@ TWEEPY_ACCESS_TOKEN = os.getenv("TWEEPY_ACCESS_TOKEN")
 TWEEPY_ACCESS_TOKEN_SECRET = os.getenv("TWEEPY_ACCESS_TOKEN_SECRET")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 
-headers = {
+SLEEP_TIME = 180  # in seconds
+# todo: should also support sneakers and any other RKL collections
+OPENSEA_EVENTS_URL = "https://api.opensea.io/api/v1/events"
+RKL_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"
+RKL_ASSET_OPENSEA_URL = f"https://opensea.io/assets/{RKL_CONTRACT_ADDRESS}/"
+
+HEADERS = {
     "X-API-KEY": OPENSEA_API_KEY,
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     + " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
 }
+
+
+class TradeSide(Enum):
+    Buyer = 0
+    Seller = 1
+
+
+@dataclass(frozen=True)
+class SalesDatum:
+    asset_name: str
+    image_url: str
+    token_id: int
+    total_price: float
+
+    buyer: str
+    seller: str
+
+    buyer_address: str
+    seller_address: str
+
+    payment_symbol: str
+    payment_decimals: int
+    payment_usd: float
+
+    # todo: better type
+    boosts: Dict
+
+    @classmethod
+    def from_json(cls, data: Dict):
+        """_summary_
+
+        Args:
+            data (Dict): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        asset_name = data["asset"]["name"]
+        image_url = data["asset"]["image_url"]
+        token_id = data["asset"]["token_id"]
+        total_price = data["total_price"]
+
+        # todo: read from files
+        boosts = get_kong_boosts(token_id)
+
+        buyer = get_trade_counter_party(TradeSide.Buyer, data)
+        seller = get_trade_counter_party(TradeSide.Seller, data)
+
+        buyer_address = data["winner_account"]["address"]
+        seller_address = data["seller"]["address"]
+
+        payment_symbol = data["payment_token"]["symbol"]
+        payment_decimals = data["payment_token"]["decimals"]
+        payment_usd = data["payment_token"]["usd_price"]
+
+        return cls(
+            asset_name,
+            image_url,
+            token_id,
+            total_price,
+            buyer,
+            seller,
+            buyer_address,
+            seller_address,
+            payment_symbol,
+            payment_decimals,
+            payment_usd,
+            boosts,
+        )
+
+    # todo: docs
+    def price_eth(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return float(self.total_price) / (10**self.payment_decimals)
+
+    def price_usd(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.price_eth() * float(self.payment_usd)
 
 
 def get_kong_boosts(kong_id: int) -> Dict[str, int]:
@@ -50,7 +133,7 @@ def get_kong_boosts(kong_id: int) -> Dict[str, int]:
 
     # todo: change to read this from file
     url = f"https://api.opensea.io/api/v1/asset/{RKL_CONTRACT_ADDRESS}/{kong_id}"
-    response = requests.request("GET", url, headers=headers)
+    response = requests.request("GET", url, headers=HEADERS)
     traits = response.json()["traits"]
     boosts = {}
 
@@ -107,103 +190,119 @@ def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
     return trade_counter_party
 
 
-# todo: too-many-locals
-# todo: too-many-statements
-def main():
+def build_discord_message(data: SalesDatum) -> discord.Embed:
     """_summary_
 
-    Raises:
-        e: _description_
+    Args:
+        data (SalesDatum): _description_
+
+    Returns:
+        discord.Embed: _description_
     """
-    url = "https://api.opensea.io/api/v1/events"
 
+    description = (
+        f"Price: {data.price_eth()} {data.payment_symbol}, (${data.price_usd():.2f})"
+    )
+    discord_message = discord.Embed(
+        title=f"{data.asset_name} Sold",
+        description=description,
+        url=f"{RKL_ASSET_OPENSEA_URL}{data.token_id}",
+    )
+    discord_message.set_thumbnail(url=data.image_url)
+    discord_message.add_field(
+        name="Boost Total", value=data.boosts["cumulative"], inline=False
+    )
+    discord_message.add_field(name="Defense", value=data.boosts["defense"], inline=True)
+    discord_message.add_field(name="Finish", value=data.boosts["finish"], inline=True)
+    discord_message.add_field(
+        name="Shooting", value=data.boosts["shooting"], inline=True
+    )
+    discord_message.add_field(name="Vision", value=data.boosts["vision"], inline=True)
+    discord_message.add_field(
+        name="Seller",
+        value=f"[{data.seller}](https://opensea.io/{data.seller_address})",
+        inline=False,
+    )
+    discord_message.add_field(
+        name="Buyer",
+        value=f"[{data.buyer}](https://opensea.io/{data.buyer_address})",
+        inline=True,
+    )
+
+    return discord_message
+
+
+def build_twitter_message(data: SalesDatum) -> str:
+    """_summary_
+
+    Args:
+        data (SalesDatum): _description_
+
+    Returns:
+        str: _description_
+    """
+
+    status_text = (
+        f"{data.asset_name} bought for {data.price_eth()} {data.payment_symbol}, "
+        + f"(${data.price_usd():.2f})\n{data.boosts['cumulative']} overall\n👀 "
+        + f"{data.boosts['vision']} | 🎯 {data.boosts['shooting']}\n💪 "
+        + f"{data.boosts['finish']} | 🛡️ {data.boosts['defense']} "
+        + f"{RKL_ASSET_OPENSEA_URL}{data.token_id}"
+    )
+
+    return status_text
+
+
+def main():
+    """
+    If any sales happen, this will push a message to a Discord channel with details.
+    This will also use tweepy to post a message on Twitter.
+    """
+
+    # todo: all of this should be done once, ideally in a class
     webhook = Webhook.from_url(DISCORD_KONG_WEBHOOK, adapter=RequestsWebhookAdapter())
-
     auth = tweepy.OAuthHandler(TWEEPY_API_KEY, TWEEPY_API_SECRET)
     auth.set_access_token(TWEEPY_ACCESS_TOKEN, TWEEPY_ACCESS_TOKEN_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True)
     api.verify_credentials()
 
-    ct = datetime.utcnow()
-    dt = timedelta(minutes=3, seconds=30)
-    pt = ct - dt
-    pts = str(pt)
-    # todo: what's this
-    split_pts = pts.split(" ")
-    ostime = f"{split_pts[0]}T{split_pts[1]}"
+    current_time = datetime.utcnow()
+    previous_time = current_time - timedelta(seconds=SLEEP_TIME - 1)
+    opensea_time = str(previous_time).replace(" ", "T")
 
     querystring = {
         "asset_contract_address": RKL_CONTRACT_ADDRESS,
         "event_type": "successful",
         "only_opensea": "false",
-        "occurred_after": ostime,
+        "occurred_after": opensea_time,
         "offset": 0,
         "limit": "50",
     }
 
-    response = requests.request("GET", url, headers=headers, params=querystring)
-    sales_data = response.json()["asset_events"]
+    response = requests.request(
+        "GET", OPENSEA_EVENTS_URL, headers=HEADERS, params=querystring
+    )
+    response_json = response.json()
+    sales_data = response_json["asset_events"]
 
     for sales_datum in sales_data:
 
-        name = sales_datum["asset"]["name"]
-        image_url = sales_datum["asset"]["image_url"]
-        token_id = sales_datum["asset"]["token_id"]
-        total_price = sales_datum["total_price"]
+        # build sales data from json
+        data = SalesDatum.from_json(sales_datum)
 
-        boosts = get_kong_boosts(token_id)
-
-        buyer = get_trade_counter_party(TradeSide.Buyer, sales_datum)
-        seller = get_trade_counter_party(TradeSide.Seller, sales_datum)
-        buyer_address = sales_datum["winner_account"]["address"]
-        seller_address = sales_datum["seller"]["address"]
-
-        payment_symbol = sales_datum["payment_token"]["symbol"]
-        payment_decimals = sales_datum["payment_token"]["decimals"]
-        payment_usd = sales_datum["payment_token"]["usd_price"]
-
-        price_eth = float(total_price) / 10 ** (payment_decimals)
-        price_usd = price_eth * float(payment_usd)
-
-        description = f"Price: {price_eth} {payment_symbol}, (${price_usd:.2f})"
-        discord_message = discord.Embed(
-            title=f"{name} Sold",
-            description=description,
-            url=f"{RKL_ASSET_OPENSEA_URL}{token_id}",
-        )
-        discord_message.set_thumbnail(url=image_url)
-        discord_message.add_field(
-            name="Boost Total", value=boosts["cumulative"], inline=False
-        )
-        discord_message.add_field(name="Defense", value=boosts["defense"], inline=True)
-        discord_message.add_field(name="Finish", value=boosts["finish"], inline=True)
-        discord_message.add_field(
-            name="Shooting", value=boosts["shooting"], inline=True
-        )
-        discord_message.add_field(name="Vision", value=boosts["vision"], inline=True)
-        discord_message.add_field(
-            name="Seller",
-            value=f"[{seller}](https://opensea.io/{seller_address})",
-            inline=False,
-        )
-        discord_message.add_field(
-            name="Buyer",
-            value=f"[{buyer}](https://opensea.io/{buyer_address})",
-            inline=True,
-        )
-
-        status_text = (
-            f"{name} bought for {price_eth} {payment_symbol}, "
-            + f"(${price_usd:.2f})\n{boosts['cumulative']} overall\n👀 {boosts['vision']}"
-            + f" | 🎯 {boosts['shooting']}\n💪 {boosts['finish']} | 🛡️ {boosts['defense']}"
-            + f" {RKL_ASSET_OPENSEA_URL}{token_id}"
-        )
-
+        # discord message send
+        discord_message = build_discord_message(data)
         webhook.send(embed=discord_message)
-        api.update_status(status_text)  # Kong #3044 bought for 1.18Ξ ($5082.21)
+
+        # twitter message
+        twitter_message = build_twitter_message(data)
+        try:
+            api.update_status(twitter_message)
+        except tweepy.errors.Forbidden:
+            continue
 
 
 if __name__ == "__main__":
     while True:
         main()
-        time.sleep(SLEEP_TIME)
+        time.sleep(SLEEP_TIME - 1)
