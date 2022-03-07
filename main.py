@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict
 from enum import Enum
 import time
+import json
 from discord import Webhook, RequestsWebhookAdapter
 from dotenv import load_dotenv
 import requests
@@ -21,7 +22,7 @@ TWEEPY_ACCESS_TOKEN = os.getenv("TWEEPY_ACCESS_TOKEN")
 TWEEPY_ACCESS_TOKEN_SECRET = os.getenv("TWEEPY_ACCESS_TOKEN_SECRET")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 
-SLEEP_TIME = 180  # in seconds
+SLEEP_TIME = 18000  # in seconds
 # todo: should also support sneakers and any other RKL collections
 OPENSEA_EVENTS_URL = "https://api.opensea.io/api/v1/events"
 RKL_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"
@@ -84,6 +85,11 @@ class SalesDatum:
         buyer_address = data["winner_account"]["address"]
         seller_address = data["seller"]["address"]
 
+        if buyer is None:
+            buyer = buyer_address[:6]
+        if seller is None:
+            seller = seller_address[:6]
+
         payment_symbol = data["payment_token"]["symbol"]
         payment_decimals = data["payment_token"]["decimals"]
         payment_usd = data["payment_token"]["usd_price"]
@@ -131,25 +137,26 @@ def get_kong_boosts(kong_id: int) -> Dict[str, int]:
         Dict[str, int]: Kong's boosts
     """
 
-    # todo: change to read this from file
-    url = f"https://api.opensea.io/api/v1/asset/{RKL_CONTRACT_ADDRESS}/{kong_id}"
-    response = requests.request("GET", url, headers=HEADERS)
-    traits = response.json()["traits"]
+    meta_file = None
+
+    with open(f"./meta/{kong_id}", "r", encoding="utf-8") as f:
+        meta_file = json.loads(f.read())["attributes"]
+
     boosts = {}
 
-    for item in traits:
-        item_trait_type = item["trait_type"]
+    for item in meta_file:
+        if "display_type" not in item:
+            continue
 
-        if item_trait_type == "Vision":
+        trait_type = item["trait_type"]
+
+        if trait_type == "Vision":
             boosts["vision"] = int(item["value"])
-
-        elif item_trait_type == "Defense":
+        elif trait_type == "Defense":
             boosts["defense"] = int(item["value"])
-
-        elif item_trait_type == "Shooting":
+        elif trait_type == "Shooting":
             boosts["shooting"] = int(item["value"])
-
-        elif item_trait_type == "Finish":
+        elif trait_type == "Finish":
             boosts["finish"] = int(item["value"])
 
     boosts["cumulative"] = sum(boosts.values())
