@@ -109,20 +109,22 @@ class SalesDatum:
             boosts,
         )
 
-    # todo: docs
-    def price_eth(self):
-        """_summary_
+    def price_eth(self) -> float:
+        """
+        Converts the sale price into eth price. For example, the original
+        sale might have been in USDC.
 
         Returns:
-            _type_: _description_
+            float: ether equivalent price of the sale.
         """
         return float(self.total_price) / (10**self.payment_decimals)
 
-    def price_usd(self):
-        """_summary_
+    def price_usd(self) -> float:
+        """
+        Converts the sale price into usd price.
 
         Returns:
-            _type_: _description_
+            float: usd equivalent price of the sale.
         """
         return self.price_eth() * float(self.payment_usd)
 
