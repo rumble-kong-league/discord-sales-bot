@@ -27,6 +27,11 @@ class SalesDatum:
     payment_decimals: int
     payment_usd: float
 
+    # * we require these two to know which
+    # * trades to publish to discord and twitter
+    transaction_index: int
+    transaction_block: int
+
     # todo: better type (dataclass to hold boosts)
     boosts: Dict
 
@@ -68,6 +73,9 @@ class SalesDatum:
         payment_decimals = data["payment_token"]["decimals"]
         payment_usd = data["payment_token"]["usd_price"]
 
+        transaction_index = int(data["transaction"]["transaction_index"])
+        transaction_block = int(data["transaction"]["block_number"])
+
         return cls(
             asset_name,
             image_url,
@@ -80,6 +88,8 @@ class SalesDatum:
             payment_symbol,
             payment_decimals,
             payment_usd,
+            transaction_index,
+            transaction_block,
             boosts,
         )
 

@@ -1,5 +1,9 @@
 # discord-sales-bot
 
+## Note
+
+Due to Opensea's API changes on 08/03/2022, pagination is performed with a cursor. For that reason, if the sales bot ever goes down, to simplify the design, only the last trade will be looked at. From that point onwards, all of the trades will be watched for.
+
 ## Dev
 
 Prepare environment. You will need to install [poetry](https://python-poetry.org/).

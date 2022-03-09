@@ -1,5 +1,4 @@
 from typing import Dict, Union
-from datetime import datetime, timedelta
 import time
 from enum import Enum, unique
 import sys
@@ -91,6 +90,13 @@ class SalesBot:
         return build_sneaker_twitter_message(data)
 
 
+# todo: these have to be manually set for now
+since_transaction_index = 169
+since_transaction_block = 14347982
+
+# todo: publish all the missed sales, not just the last one after the restart
+
+# todo: too-many-locals
 def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
     """
     If any sales happen, this will push a message to a Discord channel with details.
@@ -108,14 +114,27 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
     api = tweepy.API(auth, wait_on_rate_limit=True)
     api.verify_credentials()
 
-    since_time = datetime.utcnow() - timedelta(seconds=consts.SLEEP_TIME - 1)
+    def is_fresh_sale(datum: SalesDatum) -> bool:
+        if datum.transaction_block > since_transaction_block:
+            return True
+
+        if datum.transaction_block == since_transaction_block:
+            if datum.transaction_index > since_transaction_index:
+                return True
+
+        return False
+
+    def update_since(datum: SalesDatum):
+        global since_transaction_index
+        global since_transaction_block
+
+        since_transaction_index = datum.transaction_index
+        since_transaction_block = datum.transaction_block
 
     querystring = {
         "asset_contract_address": sales_bot.asset_contract_address,
         "event_type": "successful",
         "only_opensea": "false",
-        "occurred_after": str(since_time).replace(" ", "T"),
-        "offset": 0,
         "limit": "50",
     }
 
@@ -129,6 +148,13 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
 
         # build sales data from json
         data = SalesDatum.from_json(sales_datum)
+
+        # ! only interested in the latest trade
+        # ! otherwise, break the loop
+        fresh_sale = is_fresh_sale(data)
+        if not fresh_sale:
+            break
+        update_since(data)
 
         # discord message send
         discord_message = sales_bot.build_discord_message(data)
@@ -147,4 +173,4 @@ if __name__ == "__main__":
 
     while True:
         main(bot_type)
-        time.sleep(consts.SLEEP_TIME - 1)
+        time.sleep(consts.SLEEP_TIME)
