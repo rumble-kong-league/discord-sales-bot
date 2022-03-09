@@ -55,6 +55,7 @@ class SalesDatum:
         # rationale for this is that kongs can have any name
         # so it is easier to check that event is not about
         # sneakers
+        boosts = None
         if not asset_name.startswith("RKL Sneakers"):
             boosts = get_kong_boosts(token_id)
 
