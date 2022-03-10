@@ -90,11 +90,10 @@ class SalesBot:
         return build_sneaker_twitter_message(data)
 
 
-# todo: these have to be manually set for now
+# ! these have to be manually set on script start
 since_transaction_index = 169
 since_transaction_block = 14347982
 
-# todo: publish all the missed sales, not just the last one after the restart
 
 # todo: too-many-locals
 def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
@@ -142,7 +141,10 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
         "GET", consts.OPENSEA_EVENTS_URL, headers=consts.HEADERS, params=querystring
     )
     response_json = response.json()
-    sales_data = response_json["asset_events"]
+    # * we need to go from oldest sales to newest ones here
+    # ! note that this only goes through the first page of the response
+    # ! this should be fine, though
+    sales_data = response_json["asset_events"][::-1]
 
     for sales_datum in sales_data:
 
@@ -150,10 +152,9 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
         data = SalesDatum.from_json(sales_datum)
 
         # ! only interested in the latest trade
-        # ! otherwise, break the loop
         fresh_sale = is_fresh_sale(data)
         if not fresh_sale:
-            break
+            continue
         update_since(data)
 
         # discord message send
