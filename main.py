@@ -91,8 +91,8 @@ class SalesBot:
 
 
 # ! these have to be manually set on script start
-since_transaction_index = 169
-since_transaction_block = 14347982
+since_transaction_index = 0
+since_transaction_block = 14360920
 
 
 # todo: too-many-locals
@@ -144,7 +144,12 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
     # * we need to go from oldest sales to newest ones here
     # ! note that this only goes through the first page of the response
     # ! this should be fine, though
-    sales_data = response_json["asset_events"][::-1]
+    try:
+        sales_data = response_json["asset_events"][::-1]
+    except:
+        # todo: remove this print
+        print(response_json)
+        return
 
     for sales_datum in sales_data:
 
