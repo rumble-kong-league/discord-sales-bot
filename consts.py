@@ -13,7 +13,7 @@ TWEEPY_ACCESS_TOKEN_SECRET = os.getenv("TWEEPY_ACCESS_TOKEN_SECRET")
 
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 
-SLEEP_TIME = 30  # in seconds
+SLEEP_TIME = 60  # in seconds
 OPENSEA_EVENTS_URL = "https://api.opensea.io/api/v1/events"
 
 KONG_CONTRACT_ADDRESS = "0xef0182dc0574cd5874494a120750fd222fdb909a"

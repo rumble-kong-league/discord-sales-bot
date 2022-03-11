@@ -97,6 +97,7 @@ disable=invalid-name,
         too-many-instance-attributes,
         too-many-locals,
         global-statement,
+        broad-except,
         fixme
 
 # Enable the message, report, category or checker with the given id(s). You can

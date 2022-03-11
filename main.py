@@ -92,7 +92,7 @@ class SalesBot:
 
 # ! these have to be manually set on script start
 since_transaction_index = 0
-since_transaction_block = 14360920
+since_transaction_block = 14363391
 
 
 # todo: too-many-locals
@@ -137,18 +137,18 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
         "limit": "50",
     }
 
-    response = requests.request(
-        "GET", consts.OPENSEA_EVENTS_URL, headers=consts.HEADERS, params=querystring
-    )
-    response_json = response.json()
-    # * we need to go from oldest sales to newest ones here
-    # ! note that this only goes through the first page of the response
-    # ! this should be fine, though
     try:
+        response = requests.request(
+            "GET", consts.OPENSEA_EVENTS_URL, headers=consts.HEADERS, params=querystring
+        )
+        response_json = response.json()
+        # * we need to go from oldest sales to newest ones here
+        # ! note that this only goes through the first page of the response
+        # ! this should be fine, though
         sales_data = response_json["asset_events"][::-1]
-    except:
+    except Exception as e:
         # todo: remove this print
-        print(response_json)
+        print(e)
         return
 
     for sales_datum in sales_data:
