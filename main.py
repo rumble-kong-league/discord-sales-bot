@@ -153,8 +153,14 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
 
     for sales_datum in sales_data:
 
-        # build sales data from json
-        data = SalesDatum.from_json(sales_datum)
+        try:
+            # build sales data from json
+            data = SalesDatum.from_json(sales_datum)
+        # * will happen when it's a bundle sale
+        # * there is an active issue open for $500
+        # * to implement the support for this
+        except TypeError:
+            continue
 
         # ! only interested in the latest trade
         fresh_sale = is_fresh_sale(data)
