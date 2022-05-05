@@ -159,8 +159,10 @@ def main(sales_bot_type: SalesBotType = SalesBotType.KONG):
         # * will happen when it's a bundle sale
         # * there is an active issue open for $500
         # * to implement the support for this
-        except TypeError:
-            continue
+        except Exception as e:
+            # Capture these in the logs so the context for the issue is saved
+            print(e)
+            print(sales_datum)
 
         # ! only interested in the latest trade
         fresh_sale = is_fresh_sale(data)
