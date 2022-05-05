@@ -1,48 +1,8 @@
-import json
-from typing import Dict
 import discord
-
-import consts
-
-
-def get_kong_boosts(kong_id: int) -> Dict[str, int]:
-    """For a given kong id, returns its boosts.
-
-    Args:
-        kong_id (int): Kong's id.
-
-    Returns:
-        Dict[str, int]: Kong's boosts.
-    """
-
-    meta_file = None
-
-    with open(f"./meta/{kong_id}", "r", encoding="utf-8") as f:
-        meta_file = json.loads(f.read())["attributes"]
-
-    boosts = {}
-
-    for item in meta_file:
-        if "display_type" not in item:
-            continue
-
-        trait_type = item["trait_type"]
-
-        if trait_type == "Vision":
-            boosts["vision"] = int(item["value"])
-        elif trait_type == "Defense":
-            boosts["defense"] = int(item["value"])
-        elif trait_type == "Shooting":
-            boosts["shooting"] = int(item["value"])
-        elif trait_type == "Finish":
-            boosts["finish"] = int(item["value"])
-
-    boosts["cumulative"] = sum(boosts.values())
-
-    return boosts
+from opensea import SalesDatum
 
 
-def build_kong_discord_message(data: "SalesDatum") -> discord.Embed:
+def build_kong_discord_message(data: SalesDatum) -> discord.Embed:
     """
     Builds a sale message for Discord.
 
@@ -57,20 +17,29 @@ def build_kong_discord_message(data: "SalesDatum") -> discord.Embed:
         f"Price: {data.price_eth()} {data.payment_symbol}, (${data.price_usd():.2f})"
     )
     discord_message = discord.Embed(
-        title=f"{data.asset_name} Sold",
+        title=f"{data.display_name()} Sold",
         description=description,
-        url=f"{consts.KONG_ASSET_OPENSEA_URL}{data.token_id}",
+        url=f"{data.permalink()}",
     )
-    discord_message.set_thumbnail(url=data.image_url)
-    discord_message.add_field(
-        name="Boost Total", value=data.boosts["cumulative"], inline=False
-    )
-    discord_message.add_field(name="Defense", value=data.boosts["defense"], inline=True)
-    discord_message.add_field(name="Finish", value=data.boosts["finish"], inline=True)
-    discord_message.add_field(
-        name="Shooting", value=data.boosts["shooting"], inline=True
-    )
-    discord_message.add_field(name="Vision", value=data.boosts["vision"], inline=True)
+    discord_message.set_thumbnail(url=data.image_url())
+
+    if data.asset_bundle is None and data.asset.boosts is not None:
+        discord_message.add_field(
+            name="Boost Total", value=data.asset.boosts["cumulative"], inline=False
+        )
+        discord_message.add_field(
+            name="Defense", value=data.asset.boosts["defense"], inline=True
+        )
+        discord_message.add_field(
+            name="Finish", value=data.asset.boosts["finish"], inline=True
+        )
+        discord_message.add_field(
+            name="Shooting", value=data.asset.boosts["shooting"], inline=True
+        )
+        discord_message.add_field(
+            name="Vision", value=data.asset.boosts["vision"], inline=True
+        )
+
     discord_message.add_field(
         name="Seller",
         value=f"[{data.seller}](https://opensea.io/{data.seller_address})",
@@ -85,7 +54,7 @@ def build_kong_discord_message(data: "SalesDatum") -> discord.Embed:
     return discord_message
 
 
-def build_kong_twitter_message(data: "SalesDatum") -> str:
+def build_kong_twitter_message(data: SalesDatum) -> str:
     """
     Builds a sale message for Twitter.
 
@@ -96,12 +65,19 @@ def build_kong_twitter_message(data: "SalesDatum") -> str:
         str: twitter message.
     """
 
+    boost_text = ""
+    if data.asset_bundle is None and data.asset.boosts is not None:
+        boost_text = (
+            f"{data.asset.boosts['cumulative']} overall\n👀 "
+            + f"{data.asset.boosts['vision']} | 🎯 {data.asset.boosts['shooting']}\n💪 "
+            + f"{data.asset.boosts['finish']} | 🛡️ {data.asset.boosts['defense']} "
+        )
+
     status_text = (
-        f"{data.asset_name} bought for {data.price_eth()} {data.payment_symbol}, "
-        + f"(${data.price_usd():.2f})\n{data.boosts['cumulative']} overall\n👀 "
-        + f"{data.boosts['vision']} | 🎯 {data.boosts['shooting']}\n💪 "
-        + f"{data.boosts['finish']} | 🛡️ {data.boosts['defense']} "
-        + f"{consts.KONG_ASSET_OPENSEA_URL}{data.token_id}"
+        f"{data.display_name()} bought for {data.price_eth()} {data.payment_symbol}, "
+        + f"(${data.price_usd():.2f})\n"
+        + boost_text
+        + data.permalink()
     )
 
     return status_text

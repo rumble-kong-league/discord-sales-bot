@@ -1,8 +1,9 @@
 from typing import Dict
+from typing import List
 from enum import Enum
 from dataclasses import dataclass
 
-from kongs import get_kong_boosts
+from kong_helpers import get_kong_boosts
 
 
 class TradeSide(Enum):
@@ -11,10 +12,76 @@ class TradeSide(Enum):
 
 
 @dataclass(frozen=True)
-class SalesDatum:
+class Asset:
     asset_name: str
     image_url: str
     token_id: int
+    permalink: str
+
+    # todo: better type (dataclass to hold boosts)
+    boosts: Dict
+
+    @classmethod
+    def from_json(cls, data: Dict) -> "Asset":
+        """
+        Instanties Asset from OpenSea's response.
+
+        Args:
+            data (Dict): Opensea's event["asset"] response.
+
+        Returns:
+            Asset: instance.
+        """
+
+        asset_name = data["name"]
+        if asset_name is None:
+            asset_name = "None"
+        image_url = data["image_url"]
+        token_id = data["token_id"]
+        permalink = data["permalink"]
+
+        # rationale for this is that kongs can have any name
+        # so it is easier to check that event is not about
+        # sneakers
+        boosts = None
+        if asset_name != "None" and not asset_name.startswith("RKL Sneakers"):
+            boosts = get_kong_boosts(token_id)
+
+        return cls(asset_name, image_url, token_id, permalink, boosts)
+
+
+@dataclass(frozen=True)
+class AssetBundle:
+    name: str
+    permalink: str
+    assets: List[Asset]
+
+    @classmethod
+    def from_json(cls, data: Dict) -> "AssetBundle":
+        """
+        Instanties AssetBundle from OpenSea's response.
+
+        Args:
+            data (Dict): Opensea's event["asset_bundle"] response.
+
+        Returns:
+            Asset: instance.
+        """
+
+        name = data["name"]
+        permalink = data["permalink"]
+
+        assets = []
+        for asset in data["assets"]:
+            assets.append(Asset.from_json(asset))
+
+        return cls(name, permalink, assets)
+
+
+@dataclass(frozen=True)
+class SalesDatum:
+    asset: Asset
+    asset_bundle: AssetBundle
     total_price: float
 
     buyer: str
@@ -32,9 +99,6 @@ class SalesDatum:
     transaction_index: int
     transaction_block: int
 
-    # todo: better type (dataclass to hold boosts)
-    boosts: Dict
-
     @classmethod
     def from_json(cls, data: Dict) -> "SalesDatum":
         """
@@ -47,17 +111,16 @@ class SalesDatum:
             SalesDatum: instance.
         """
 
-        asset_name = data["asset"]["name"]
-        image_url = data["asset"]["image_url"]
-        token_id = data["asset"]["token_id"]
-        total_price = data["total_price"]
+        asset_bundle = None
+        asset = None
+        if "asset_bundle" in data and data["asset_bundle"] is not None:
+            asset_bundle = AssetBundle.from_json(data["asset_bundle"])
+            asset = None
+        else:
+            asset = Asset.from_json(data["asset"])
+            asset_bundle = None
 
-        # rationale for this is that kongs can have any name
-        # so it is easier to check that event is not about
-        # sneakers
-        boosts = None
-        if not asset_name.startswith("RKL Sneakers"):
-            boosts = get_kong_boosts(token_id)
+        total_price = data["total_price"]
 
         buyer = get_trade_counter_party(TradeSide.Buyer, data)
         seller = get_trade_counter_party(TradeSide.Seller, data)
@@ -78,9 +141,8 @@ class SalesDatum:
         transaction_block = int(data["transaction"]["block_number"])
 
         return cls(
-            asset_name,
-            image_url,
-            token_id,
+            asset,
+            asset_bundle,
             total_price,
             buyer,
             seller,
@@ -91,7 +153,6 @@ class SalesDatum:
             payment_usd,
             transaction_index,
             transaction_block,
-            boosts,
         )
 
     def price_eth(self) -> float:
@@ -112,6 +173,42 @@ class SalesDatum:
             float: usd equivalent price of the sale.
         """
         return self.price_eth() * float(self.payment_usd)
+
+    def display_name(self) -> str:
+        """
+        Get the display name from the Asset or Bundle.
+
+        Returns:
+            str: The display name
+        """
+        if self.asset_bundle is None:
+            return self.asset.asset_name
+
+        return f"Bundle: {self.asset_bundle.name}"
+
+    def permalink(self) -> str:
+        """
+        Get the permalink from the Asset or Bundle.
+
+        Returns:
+            str: The permalink
+        """
+        if self.asset_bundle is None:
+            return self.asset.permalink
+
+        return self.asset_bundle.permalink
+
+    def image_url(self) -> str:
+        """
+        Get the image URL from the Asset or Bundle.
+
+        Returns:
+            str: The image URL
+        """
+        if self.asset_bundle is None:
+            return self.asset.image_url
+
+        return self.asset_bundle.assets[0].image_url
 
 
 def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
