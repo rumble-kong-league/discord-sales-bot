@@ -90,6 +90,7 @@ disable=invalid-name,
         bare-except,
         missing-module-docstring,
         missing-class-docstring,
+        missing-function-docstring,
         logging-fstring-interpolation,
         import-error,
         too-few-public-methods,
@@ -98,6 +99,10 @@ disable=invalid-name,
         too-many-locals,
         global-statement,
         broad-except,
+        unspecified-encoding,
+        consider-using-enumerate,
+        no-else-return,
+        consider-using-with,
         fixme
 
 # Enable the message, report, category or checker with the given id(s). You can
