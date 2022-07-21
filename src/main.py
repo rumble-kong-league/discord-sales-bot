@@ -15,15 +15,6 @@ from src.sales_bot import SalesBotType, SalesBot, is_fresh_sale
 from src.util import handle_exception
 
 
-# * set level to logging.DEBUG in local dev environment
-logging.basicConfig(
-    filename="salesbot.log",
-    level=logging.INFO,
-    format="%(process)d |:| %(levelname)s |:| %(asctime)s.%(msecs)03d |:| %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-
 def run(sales_bot_type: SalesBotType = SalesBotType.KONG):
 
     this_path = os.path.dirname(os.path.abspath(__file__))
@@ -115,6 +106,17 @@ def main(bot_type: int):
 
 if __name__ == "__main__":
     try:
+        bot_kind = int(sys.argv[1])
+        suffix = "_kongs.log" if bot_kind == SalesBotType.KONG else "_sneakers.log"
+        logging.basicConfig(
+            filename="salesbot" + suffix,
+            level=logging.INFO,
+            format=(
+                "%(process)d |:| %(levelname)s |:| %(asctime)s.%(msecs)03d |:| %(message)s"
+            ),
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
         main(int(sys.argv[1]))
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt caught. Gracefully exiting.")
