@@ -107,7 +107,17 @@ def main(bot_type: int):
 if __name__ == "__main__":
     try:
         bot_kind = int(sys.argv[1])
-        suffix = "_kongs.log" if bot_kind == SalesBotType.KONG else "_sneakers.log"
+
+        suffix = ""
+        if bot_kind == SalesBotType.KONG:
+            suffix = "_kongs.log"
+        elif bot_kind == SalesBotType.SNEAKER:
+            suffix = "_sneakers.log"
+        elif bot_kind == SalesBotType.ROOKIE:
+            suffix = "_rookies.log"
+        else:
+            raise Exception("Invalid bot type")
+
         logging.basicConfig(
             filename="salesbot" + suffix,
             level=logging.INFO,

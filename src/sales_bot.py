@@ -5,6 +5,7 @@ import discord
 
 from src.kongs import build_kong_discord_message, build_kong_twitter_message
 from src.sneakers import build_sneaker_discord_message, build_sneaker_twitter_message
+from src.rookies import build_rookie_discord_message, build_rookie_twitter_message
 from src.opensea import SalesDatum
 
 import src.consts
@@ -14,6 +15,7 @@ import src.consts
 class SalesBotType(Enum):
     KONG = 0
     SNEAKER = 1
+    ROOKIE = 2
 
     @classmethod
     def from_int(cls, v: int) -> "SalesBotType":
@@ -21,6 +23,8 @@ class SalesBotType(Enum):
             return cls.KONG
         elif v == 1:
             return cls.SNEAKER
+        elif v == 2:
+            return cls.ROOKIE
         else:
             raise ValueError(f"Cannot instantiate from {v}")
 
@@ -41,6 +45,9 @@ class SalesBot:
         elif self.sales_bot_type == SalesBotType.SNEAKER:
             self.discord_webhook = src.consts.DISCORD_SNEAKER_WEBHOOK
             self.asset_contract_address = src.consts.SNEAKER_CONTRACT_ADDRESS
+        elif self.sales_bot_type == SalesBotType.ROOKIE:
+            self.discord_webhook = src.consts.DISCORD_ROOKIE_WEBHOOK
+            self.asset_contract_address = src.consts.ROOKIE_CONTRACT_ADDRESS
         else:
             raise ValueError("Invalid sales_bot_type.")
 
@@ -49,6 +56,8 @@ class SalesBot:
             return build_kong_discord_message(data)
         elif self.sales_bot_type == SalesBotType.SNEAKER:
             return build_sneaker_discord_message(data)
+        elif self.sales_bot_type == SalesBotType.ROOKIE:
+            return build_rookie_discord_message(data)
         else:
             raise ValueError("Invalid sales_bot_type")
 
@@ -57,6 +66,8 @@ class SalesBot:
             return build_kong_twitter_message(data)
         elif self.sales_bot_type == SalesBotType.SNEAKER:
             return build_sneaker_twitter_message(data)
+        elif self.sales_bot_type == SalesBotType.ROOKIE:
+            return build_rookie_twitter_message(data)
         else:
             raise ValueError("Invalid sales_bot_type")
 
