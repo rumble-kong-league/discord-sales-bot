@@ -109,11 +109,11 @@ if __name__ == "__main__":
         bot_kind = int(sys.argv[1])
 
         suffix = ""
-        if bot_kind == SalesBotType.KONG:
+        if bot_kind == SalesBotType.KONG.value:
             suffix = "_kongs.log"
-        elif bot_kind == SalesBotType.SNEAKER:
+        elif bot_kind == SalesBotType.SNEAKER.value:
             suffix = "_sneakers.log"
-        elif bot_kind == SalesBotType.ROOKIE:
+        elif bot_kind == SalesBotType.ROOKIE.value:
             suffix = "_rookies.log"
         else:
             raise Exception("Invalid bot type")

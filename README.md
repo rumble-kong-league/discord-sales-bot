@@ -27,3 +27,7 @@ pre-commit install
 ```
 
 You are ready to develop and run the script
+
+You can activate the poetry env by running
+
+`~/.pyenv/shims/python3.9 -m poetry shell`
