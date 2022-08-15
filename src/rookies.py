@@ -29,7 +29,9 @@ def build_rookie_discord_message(data: List["SalesDatum"]) -> discord.Embed:
             url=url,
         )
 
-        discord_message.set_thumbnail(url=datum.image_url)
+        # ! can safely remove this after all rookies reveal
+        if datum.image_url is not None:
+            discord_message.set_thumbnail(url=datum.image_url)
         discord_message.add_field(
             name="Seller",
             value=f"[{datum.seller}](https://opensea.io/{datum.seller_address})",
