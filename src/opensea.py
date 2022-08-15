@@ -59,8 +59,11 @@ class SalesDatum:
             # so it is easier to check that event is not about
             # sneakers
             boosts = None
-            if not asset_name.startswith("RKL Sneakers"):
-                boosts = get_kong_boosts(token_id)
+            if asset_name is not None:
+                is_sneaks = asset_name.startswith("RKL Sneakers")
+                is_rooks = asset_name.startswith("Rookie")
+                if not is_sneaks and not is_rooks:
+                    boosts = get_kong_boosts(token_id)
 
             buyer = get_trade_counter_party(TradeSide.Buyer, data)
             seller = get_trade_counter_party(TradeSide.Seller, data)

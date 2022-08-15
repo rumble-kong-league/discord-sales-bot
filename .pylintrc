@@ -103,6 +103,7 @@ disable=invalid-name,
         consider-using-enumerate,
         no-else-return,
         consider-using-with,
+        too-many-statements,
         fixme
 
 # Enable the message, report, category or checker with the given id(s). You can
