@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, TYPE_CHECKING
 from enum import Enum
 from dataclasses import dataclass
+import logging
 
 from src.collections.kongs import get_kong_boosts
 
@@ -190,6 +191,6 @@ def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
         except:
             trade_counter_party = str(sales_datum["seller"]["address"])
     else:
-        raise ValueError("Invalid trade side")
+        logging.warning(f"Unknown trade side: {side}")
 
     return trade_counter_party

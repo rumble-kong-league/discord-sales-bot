@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TypedDict, List, TYPE_CHECKING
 from pathlib import Path
 import json
+import logging
 import discord
 import src.consts
 
@@ -93,6 +94,13 @@ def build_kong_discord_message(data: List[SalesDatum]) -> discord.Embed:
             discord_message.add_field(
                 name="Vision", value=datum.boosts["vision"], inline=True
             )
+
+        # TODO: should not be happening. Investigate if it is happening
+        # (through logs)
+        if datum.seller is None:
+            logging.warning("No seller name for trade.")
+        if datum.buyer is None:
+            logging.warning("No buyer name for trade.")
 
         discord_message.add_field(
             name="Seller",
