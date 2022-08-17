@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Dict, List, TYPE_CHECKING
+from typing import TypedDict, List, TYPE_CHECKING
+from pathlib import Path
 import json
-import os
 import discord
 import src.consts
 
@@ -14,26 +14,39 @@ if TYPE_CHECKING:
 # TODO: consider creating a class and unifying these
 
 
-def get_kong_boosts(kong_id: int) -> Dict[str, int]:
+# https://peps.python.org/pep-0589/#class-based-syntax
+class Boosts(TypedDict):
+    shooting: int
+    vision: int
+    finish: int
+    defense: int
+    cumulative: int
 
-    meta_file = None
-    this_path = os.path.dirname(os.path.realpath(__file__))
-    meta_path = os.path.join(this_path, "meta", f"{kong_id}")
 
+def get_kong_boosts(kong_id: int) -> Boosts:
+    """
+    >>> get_kong_boosts(0)
+    {'shooting': 42, 'defense': 41, 'vision': 54, 'finish': 81, 'cumulative': 218}
+    >>> get_kong_boosts(-1) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    AssertionError: kong_id must be a positive integer less than 10000
+    >>> get_kong_boosts(10000) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    AssertionError: kong_id must be less than 10000
+    """
+
+    assert kong_id > -1, "kong_id must be a positive integer less than 10000"
+    assert kong_id < 10_000, "kong_id must be less than 10000"
+
+    this_path = Path(__file__).parent.parent
+    meta_path = this_path / "meta" / "kongs.json"
+
+    boosts: Boosts
     with open(meta_path, "r", encoding="utf-8") as f:
-        meta_file = json.loads(f.read())["attributes"]
-
-    boosts = {}
-
-    for item in meta_file:
-        if "display_type" not in item:
-            continue
-
-        trait_type = item["trait_type"]
-        if trait_type in ["Vision", "Shooting", "Finish", "Defense"]:
-            boosts[trait_type.lower()] = int(item["value"])
-
-    boosts["cumulative"] = sum(boosts.values())
+        boosts = json.loads(f.read())[kong_id]["boosts"]
+    boosts["cumulative"] = (
+        boosts["shooting"] + boosts["vision"] + boosts["finish"] + boosts["defense"]
+    )
 
     return boosts
 
