@@ -36,6 +36,8 @@ def get_kong_boosts(kong_id: int) -> Boosts:
     AssertionError: kong_id must be less than 10000
     """
 
+    kong_id = int(kong_id)
+
     assert kong_id > -1, "kong_id must be a positive integer less than 10000"
     assert kong_id < 10_000, "kong_id must be less than 10000"
 
