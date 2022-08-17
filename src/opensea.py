@@ -1,8 +1,12 @@
-from typing import Dict, List, Optional
+from __future__ import annotations
+from typing import Dict, List, Optional, TYPE_CHECKING
 from enum import Enum
 from dataclasses import dataclass
 
 from src.collections.kongs import get_kong_boosts
+
+if TYPE_CHECKING:
+    from src.collections.kongs import Boosts
 
 
 class TradeSide(Enum):
@@ -35,8 +39,7 @@ class SalesDatum:
     transaction_index: int
     transaction_block: int
 
-    # todo: better type (dataclass to hold boosts)
-    boosts: Optional[Dict]
+    boosts: Optional[Boosts]
 
     # TODO: this is pretty poo. Refactor.
     @classmethod
@@ -53,7 +56,7 @@ class SalesDatum:
             # rationale for this is that kongs can have any name
             # so it is easier to check that event is not about
             # sneakers
-            boosts = None
+            boosts: Optional[Boosts] = None
             if asset_name is not None:
                 is_sneaks = asset_name.startswith("RKL Sneakers")
                 is_rooks = asset_name.startswith("Rookie")
@@ -98,6 +101,7 @@ class SalesDatum:
                     boosts,
                 )
             ]
+        # bundle
         else:
             # TODO: not DRY
             bundle_name = data["asset_bundle"]["name"]
@@ -109,21 +113,16 @@ class SalesDatum:
             ]
             token_ids = [asset["token_id"] for asset in data["asset_bundle"]["assets"]]
             total_price = data["total_price"]
-            # * this is how you would stack them horizontally
-            # imgs = [Image.open(requests.get(i, stream=True).raw) for i in urls]
-            # min_shape = sorted([(np.sum(i.size), i.size ) for i in imgs])[0][1]
-            # imgs_comb = np.hstack((np.asarray(i.resize(min_shape)) for i in imgs))
-            # imgs_comb = Image.fromarray(imgs_comb)
 
             # rationale for this is that kongs can have any name
             # so it is easier to check that event is not about
             # sneakers
             first_asset_name = data["asset_bundle"]["assets"][0]["name"]
-            boosts = []
+            boosts_bundle: List[Boosts] = []
             is_sneakers = first_asset_name.startswith("RKL Sneakers")
             if not is_sneakers:
                 for asset in data["asset_bundle"]["assets"]:
-                    boosts.append(get_kong_boosts(asset["token_id"]))
+                    boosts_bundle.append(get_kong_boosts(asset["token_id"]))
 
             buyer = get_trade_counter_party(TradeSide.Buyer, data)
             seller = get_trade_counter_party(TradeSide.Seller, data)
@@ -163,7 +162,7 @@ class SalesDatum:
                         payment_usd,
                         transaction_index,
                         transaction_block,
-                        None if is_sneakers else boosts[i],
+                        None if is_sneakers else boosts_bundle[i],
                     )
                 )
 
