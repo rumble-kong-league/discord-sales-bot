@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 def run(sales_bot_type: SalesBotType = SalesBotType.KONG):
 
     this_path = os.path.dirname(os.path.abspath(__file__))
-    since_path = os.path.join(this_path, "sales_since", f"{sales_bot_type}.json")
+    since_path = os.path.join(this_path, "sales_since", f"{sales_bot_type.value}.json")
 
     since_index = json.loads(open(since_path).read())["index"]
     since_block = json.loads(open(since_path).read())["block"]
