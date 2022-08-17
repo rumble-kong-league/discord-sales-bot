@@ -1,18 +1,21 @@
+from __future__ import annotations
 import time
 import sys
 import json
 import logging
-from typing import List
+from typing import List, TYPE_CHECKING
 import os
 
 import discord
 import requests
 import tweepy
 
-from src.opensea import SalesDatum
 import src.consts
 from src.sales_bot import SalesBotType, SalesBot, is_fresh_sale
 from src.util import handle_exception
+
+if TYPE_CHECKING:
+    from src.opensea import SalesDatum
 
 
 def run(sales_bot_type: SalesBotType = SalesBotType.KONG):
@@ -73,7 +76,7 @@ def run(sales_bot_type: SalesBotType = SalesBotType.KONG):
 
     for sales_datum in sales_data:
 
-        data: List["SalesDatum"] = SalesDatum.from_json(sales_datum)
+        data: List[SalesDatum] = SalesDatum.from_json(sales_datum)
 
         # ! only interested in the latest trade
         fresh_sale = is_fresh_sale(data[0], since_block, since_index)
