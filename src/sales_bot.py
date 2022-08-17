@@ -3,9 +3,15 @@ from enum import Enum, unique
 
 import discord
 
-from src.kongs import build_kong_discord_message, build_kong_twitter_message
-from src.sneakers import build_sneaker_discord_message, build_sneaker_twitter_message
-from src.rookies import build_rookie_discord_message, build_rookie_twitter_message
+from src.collections.kongs import build_kong_discord_message, build_kong_twitter_message
+from src.collections.sneakers import (
+    build_sneaker_discord_message,
+    build_sneaker_twitter_message,
+)
+from src.collections.rookies import (
+    build_rookie_discord_message,
+    build_rookie_twitter_message,
+)
 from src.opensea import SalesDatum
 
 import src.consts

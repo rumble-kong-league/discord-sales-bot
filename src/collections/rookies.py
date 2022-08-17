@@ -1,20 +1,25 @@
-from typing import List
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import discord
-
 import src.consts
 
+# * https://stackoverflow.com/questions/744373/what-happens-when-using
+# *-mutual-or-circular-cyclic-imports-in-python
+if TYPE_CHECKING:
+    from src.opensea import SalesDatum
 
-def build_rookie_discord_message(data: List["SalesDatum"]) -> discord.Embed:
+
+def build_rookie_discord_message(data: List[SalesDatum]) -> discord.Embed:
 
     discord_messages = []
 
-    def build_a_message(datum: "SalesDatum") -> discord.Embed:
+    def build_a_message(datum: SalesDatum) -> discord.Embed:
 
         is_bundle_sale = len(data) > 1
-        # TODO: fix this hack
-        msg_part_1 = f"Price: {datum.price_eth()} "
-        msg_part_2 = f"{datum.payment_symbol}, (${datum.price_usd():.2f})"
-        description = msg_part_1 + msg_part_2
+        description = (
+            f"Price: {datum.price_eth()}"
+            f" {datum.payment_symbol}, (${datum.price_usd():.2f})"
+        )
         title = f"{datum.asset_name} Sold"
         url = f"{src.consts.ROOKIE_ASSET_OPENSEA_URL}{datum.token_id}"
 
@@ -45,29 +50,37 @@ def build_rookie_discord_message(data: List["SalesDatum"]) -> discord.Embed:
 
         return discord_message
 
+    # * we are repeating a bundle sale message n times because
+    # * we are showing all the kongs / sneakers / rookies
+    # * sold in that particular bundle. Notice that when it
+    # * comes to building a twitter message. There is only
+    # * one tweet per whole bundle.
     for datum in data:
         discord_messages.append(build_a_message(datum))
 
     return discord_messages
 
 
-def build_rookie_twitter_message(data: List["SalesDatum"]) -> str:
+def build_rookie_twitter_message(data: List[SalesDatum]) -> str:
+
+    if not len(data) > 0:
+        raise ValueError("No data to build a twitter message from")
 
     is_bundle_sale = len(data) > 1
     status_text = ""
+    datum = data[0]
 
-    # TODO: not DRY
     if not is_bundle_sale:
         status_text = (
-            f"{data[0].asset_name} bought for {data[0].price_eth()} {data[0].payment_symbol}, "
-            + f"(${data[0].price_usd():.2f})\n"
-            + f"{src.consts.ROOKIE_ASSET_OPENSEA_URL}{data[0].token_id}"
+            f"{datum.asset_name} bought for {datum.price_eth()} {datum.payment_symbol}, "
+            + f"(${datum.price_usd():.2f})\n"
+            + f"{src.consts.ROOKIE_ASSET_OPENSEA_URL}{datum.token_id}"
         )
     else:
         status_text = (
-            f"{data[0].bundle_name} bought for {data[0].price_eth()} {data[0].payment_symbol}, "
-            + f"(${data[0].price_usd():.2f})\n"
-            + f"{data[0].bundle_link}"
+            f"{datum.bundle_name} bought for {datum.price_eth()} {datum.payment_symbol}, "
+            + f"(${datum.price_usd():.2f})\n"
+            + f"{datum.bundle_link}"
         )
 
     return status_text

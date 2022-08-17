@@ -2,12 +2,7 @@ from typing import Dict, List, Optional
 from enum import Enum
 from dataclasses import dataclass
 
-# import numpy as np
-# import PIL
-# from PIL import Image
-# import requests
-
-from src.kongs import get_kong_boosts
+from src.collections.kongs import get_kong_boosts
 
 
 class TradeSide(Enum):
