@@ -99,7 +99,7 @@ def run(sales_bot_type: SalesBotType = SalesBotType.KONG):
 def main(bot_type: int):
 
     while True:
-        run(bot_type)
+        run(SalesBotType.from_int(bot_type))
         logging.info("Sleeping for 10 minutes...")
         time.sleep(10 * src.consts.SLEEP_TIME)
 
