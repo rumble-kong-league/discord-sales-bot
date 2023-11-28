@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import logging
 
 from src.collections.kongs import get_kong_boosts
+from src.util import get_usd_price
 
 if TYPE_CHECKING:
     from src.collections.kongs import Boosts
@@ -45,14 +46,13 @@ class SalesDatum:
     # TODO: this is pretty poo. Refactor.
     @classmethod
     def from_json(cls, data: Dict) -> List["SalesDatum"]:
-
-        is_bundle = data["asset_bundle"] is not None
+        is_bundle = data.get("asset_bundle", None) is not None
 
         if not is_bundle:
-            asset_name = data["asset"]["name"]
-            image_url = data["asset"]["image_url"]
-            token_id = data["asset"]["token_id"]
-            total_price = data["total_price"]
+            asset_name = data["nft"]["name"]
+            image_url = data["nft"]["image_url"]
+            token_id = data["nft"]["identifier"]
+            total_price = data["payment"]["quantity"]
 
             # rationale for this is that kongs can have any name
             # so it is easier to check that event is not about
@@ -64,23 +64,13 @@ class SalesDatum:
                 if not is_sneaks and not is_rooks:
                     boosts = get_kong_boosts(token_id)
 
-            buyer = get_trade_counter_party(TradeSide.Buyer, data)
-            seller = get_trade_counter_party(TradeSide.Seller, data)
+            buyer = data["buyer"]
+            seller = data["seller"]
 
-            buyer_address = data["winner_account"]["address"]
-            seller_address = data["seller"]["address"]
+            payment_symbol = data["payment"]["symbol"]
+            payment_decimals = data["payment"]["decimals"]
 
-            if buyer == "":
-                buyer = buyer_address[:6]
-            if seller == "":
-                seller = seller_address[:6]
-
-            payment_symbol = data["payment_token"]["symbol"]
-            payment_decimals = data["payment_token"]["decimals"]
-            payment_usd = data["payment_token"]["usd_price"]
-
-            transaction_index = int(data["transaction"]["transaction_index"])
-            transaction_block = int(data["transaction"]["block_number"])
+            payment_usd = get_usd_price(payment_symbol)
 
             return [
                 cls(
@@ -92,13 +82,13 @@ class SalesDatum:
                     total_price,
                     buyer,
                     seller,
-                    buyer_address,
-                    seller_address,
+                    buyer,
+                    seller,
                     payment_symbol,
                     payment_decimals,
                     payment_usd,
-                    transaction_index,
-                    transaction_block,
+                    None,
+                    None,
                     boosts,
                 )
             ]
@@ -177,7 +167,6 @@ class SalesDatum:
 
 
 def get_trade_counter_party(side: TradeSide, sales_datum: Dict) -> str:
-
     trade_counter_party = ""
 
     if side == TradeSide.Buyer:

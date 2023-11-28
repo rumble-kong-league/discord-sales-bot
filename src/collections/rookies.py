@@ -10,11 +10,9 @@ if TYPE_CHECKING:
 
 
 def build_rookie_discord_message(data: List[SalesDatum]) -> discord.Embed:
-
     discord_messages = []
 
     def build_a_message(datum: SalesDatum) -> discord.Embed:
-
         is_bundle_sale = len(data) > 1
         description = (
             f"Price: {datum.price_eth()}"
@@ -62,7 +60,6 @@ def build_rookie_discord_message(data: List[SalesDatum]) -> discord.Embed:
 
 
 def build_rookie_twitter_message(data: List[SalesDatum]) -> str:
-
     if not len(data) > 0:
         raise ValueError("No data to build a twitter message from")
 

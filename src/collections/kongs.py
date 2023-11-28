@@ -55,11 +55,9 @@ def get_kong_boosts(kong_id: int) -> Boosts:
 
 
 def build_kong_discord_message(data: List[SalesDatum]) -> discord.Embed:
-
     discord_messages = []
 
     def build_a_message(datum: SalesDatum) -> discord.Embed:
-
         is_bundle_sale = len(data) > 1
         description = (
             f"Price: {datum.price_eth()}"
@@ -129,7 +127,6 @@ def build_kong_discord_message(data: List[SalesDatum]) -> discord.Embed:
 
 
 def build_kong_twitter_message(data: List[SalesDatum]) -> str:
-
     if not len(data) > 0:
         raise ValueError("No data to build a twitter message from")
 

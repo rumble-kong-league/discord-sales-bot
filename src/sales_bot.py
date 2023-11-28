@@ -37,7 +37,6 @@ class SalesBotType(Enum):
 
 class SalesBot:
     def __init__(self, sales_bot_type: Union[SalesBotType, int]):
-
         if isinstance(sales_bot_type, int):
             self.sales_bot_type = SalesBotType.from_int(sales_bot_type)
         # ! note that this else contains all NON int types
@@ -48,12 +47,15 @@ class SalesBot:
         if self.sales_bot_type == SalesBotType.KONG:
             self.discord_webhook = src.consts.DISCORD_KONG_WEBHOOK
             self.asset_contract_address = src.consts.KONG_CONTRACT_ADDRESS
+            self.opensea_slug = "rumble-kong-league"
         elif self.sales_bot_type == SalesBotType.SNEAKER:
             self.discord_webhook = src.consts.DISCORD_SNEAKER_WEBHOOK
             self.asset_contract_address = src.consts.SNEAKER_CONTRACT_ADDRESS
+            self.opensea_slug = "rumble-kong-league-sneakers"
         elif self.sales_bot_type == SalesBotType.ROOKIE:
             self.discord_webhook = src.consts.DISCORD_ROOKIE_WEBHOOK
             self.asset_contract_address = src.consts.ROOKIE_CONTRACT_ADDRESS
+            self.opensea_slug = "rkl-rookies"
         else:
             raise ValueError("Invalid sales_bot_type.")
 

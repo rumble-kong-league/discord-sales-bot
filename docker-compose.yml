@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  kong_sales_bot:
+    build:
+      context: .
+    environment:
+      - OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - DISCORD_KONG_WEBHOOK=${DISCORD_KONG_WEBHOOK}
+      - DISCORD_SNEAKER_WEBHOOK=${DISCORD_SNEAKER_WEBHOOK}
+      - DISCORD_ROOKIE_WEBHOOK=${DISCORD_ROOKIE_WEBHOOK}
+    entrypoint: ["python", "-m", "src.main", "0"]
+
+  sneakers_sales_bot:
+    build:
+      context: .
+    environment:
+      - OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - DISCORD_KONG_WEBHOOK=${DISCORD_KONG_WEBHOOK}
+      - DISCORD_SNEAKER_WEBHOOK=${DISCORD_SNEAKER_WEBHOOK}
+      - DISCORD_ROOKIE_WEBHOOK=${DISCORD_ROOKIE_WEBHOOK}
+    entrypoint: ["python", "-m", "src.main", "1"]
+
+  rookies_sales_bot:
+    build:
+      context: .
+    environment:
+      - OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - DISCORD_KONG_WEBHOOK=${DISCORD_KONG_WEBHOOK}
+      - DISCORD_SNEAKER_WEBHOOK=${DISCORD_SNEAKER_WEBHOOK}
+      - DISCORD_ROOKIE_WEBHOOK=${DISCORD_ROOKIE_WEBHOOK}
+    entrypoint: ["python", "-m", "src.main", "2"]
